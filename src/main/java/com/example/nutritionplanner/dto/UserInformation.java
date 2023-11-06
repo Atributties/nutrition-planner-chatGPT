@@ -1,6 +1,5 @@
 package com.example.nutritionplanner.dto;
 
-import jakarta.persistence.Entity;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
