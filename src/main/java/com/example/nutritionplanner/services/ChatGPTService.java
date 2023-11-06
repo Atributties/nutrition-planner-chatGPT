@@ -1,12 +1,11 @@
 package com.example.nutritionplanner.services;
 
-
 import com.example.nutritionplanner.dto.*;
-import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
+
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,47 +13,69 @@ import java.util.List;
 @Service
 public class ChatGPTService {
 
-    private final WebClient webClient;
+    // Brug konstanter for beskedroller
+    private static final String USER_ROLE = "user";
+    private static final String SYSTEM_ROLE = "system";
+
+    @Value("${gpt.model}")
+    private String gptModel;
+
+    @Value("${gpt.api.key}")
+    private String gptApiKey;
+
+    @Value("${gpt.api.url}")
+    private String gptApiUrl;
+
+    private final WebClient.Builder webClientBuilder;
 
     public ChatGPTService(WebClient.Builder webClientBuilder) {
-        this.webClient = webClientBuilder.baseUrl("https://api.openai.com/v1/chat/completions").build();
+        this.webClientBuilder = webClientBuilder;
     }
 
     public List<Choice> fetchChatGPT(ChatRequestFromUser chatRequestFromUser) {
+        ChatRequest chatRequest = createChatRequest(chatRequestFromUser);
+        ChatResponse response = sendChatRequest(chatRequest);
+        return response.getChoices();
+    }
+
+    // Opret beskeder baseret på brugerinput
+    private ChatRequest createChatRequest(ChatRequestFromUser chatRequestFromUser) {
         ChatRequest chatRequest = new ChatRequest();
-        chatRequest.setModel("gpt-3.5-turbo"); //vælg rigtig model. se powerpoint
-        List<Message> lstMessages = new ArrayList<>(); //en liste af messages med roller
+        chatRequest.setModel(gptModel);
+        List<Message> lstMessages = new ArrayList<>();
 
-        lstMessages.add(new Message("user", "I am a " + chatRequestFromUser.getUserInformation().getGender() +
-                " and my goal is to " + chatRequestFromUser.getNutritionType() +
-                ". My weight is " + chatRequestFromUser.getUserInformation().getWeight() +
-                " and my height is " + chatRequestFromUser.getUserInformation().getHeight() +
-                "."));
-        lstMessages.add(new Message("user", "Can you show me my daily nutritional needs?"));
+        String userMessage = String.format("I am a %s and my goal is to %s. My weight is %.2f kg and my height is %.2f cm.",
+                chatRequestFromUser.getUserInformation().getGender(),
+                chatRequestFromUser.getNutritionType(),
+                chatRequestFromUser.getUserInformation().getWeight(),
+                chatRequestFromUser.getUserInformation().getHeight());
 
-
-        lstMessages.add(new Message("user", "Can you help me create a meal plan for the day?"));
+        lstMessages.add(new Message(SYSTEM_ROLE, "You are a helpful assistant."));
+        lstMessages.add(new Message(USER_ROLE, userMessage));
+        lstMessages.add(new Message(USER_ROLE, "Can you show me my daily nutritional needs?"));
+        lstMessages.add(new Message(USER_ROLE, "Can you help me create a meal plan for the day?"));
 
         chatRequest.setMessages(lstMessages);
-        chatRequest.setN(chatRequestFromUser.getNumberOfDays()); //n er antal svar fra chatgpt
-        chatRequest.setTemperature(1); //jo højere jo mere fantasifuldt svar (se powerpoint)
-        chatRequest.setMaxTokens(250); //længde af svar
-        chatRequest.setStream(false); //stream = true, er for viderekomne, der kommer flere svar asynkront
-        chatRequest.setPresencePenalty(1); //noget med ikke at gentage sig. se powerpoint
+        chatRequest.setN(chatRequestFromUser.getNumberOfDays());
+        chatRequest.setTemperature(1);
+        chatRequest.setMaxTokens(250);
+        chatRequest.setStream(false);
+        chatRequest.setPresencePenalty(1);
 
-        ChatResponse response = webClient.post()
+        return chatRequest;
+    }
+
+    // Send chatanmodningen ved hjælp af WebClient
+    private ChatResponse sendChatRequest(ChatRequest chatRequest) {
+        return webClientBuilder.baseUrl(gptApiUrl)
+                .build()
+                .post()
                 .contentType(MediaType.APPLICATION_JSON)
-                .headers(h -> h.setBearerAuth("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"))
+                .headers(h -> h.setBearerAuth(gptApiKey))
                 .bodyValue(chatRequest)
                 .retrieve()
                 .bodyToMono(ChatResponse.class)
                 .block();
-
-        List<Choice> lst = response.getChoices();
-
-        return lst;
-
-
     }
 
 }
