@@ -44,16 +44,25 @@ public class ChatGPTService {
         chatRequest.setModel(gptModel);
         List<Message> lstMessages = new ArrayList<>();
 
-        String userMessage = String.format("I am a %s and my goal is to %s. My weight is %.2f kg and my height is %.2f cm.",
+        String userMessage = String.format("I am a %s and my goal is to %s. My weight is %.2f kg and my height is %.2f cm. I am %d years old. My activity level is %s. I plan to do this for %d days.",
                 chatRequestFromUser.getUserInformation().getGender(),
                 chatRequestFromUser.getNutritionType(),
                 chatRequestFromUser.getUserInformation().getWeight(),
-                chatRequestFromUser.getUserInformation().getHeight());
+                chatRequestFromUser.getUserInformation().getHeight(),
+                chatRequestFromUser.getUserInformation().getAge(),
+                chatRequestFromUser.getUserInformation().getActivityLevel(),
+                chatRequestFromUser.getNumberOfDays());
+
+
 
         lstMessages.add(new Message(SYSTEM_ROLE, "You are a helpful assistant."));
         lstMessages.add(new Message(USER_ROLE, userMessage));
-        lstMessages.add(new Message(USER_ROLE, "Can you show me my daily nutritional needs?"));
-        lstMessages.add(new Message(USER_ROLE, "Can you help me create a meal plan for the day?"));
+        lstMessages.add(new Message(USER_ROLE, "Can you show me my daily nutritional needs and " +
+                "help me create a meal plan for the day?," +
+                " i just want the meal plans and nothing else, " +
+                "you done have to explain anything to me." +
+                "Can you make it as simple as possible" +
+                "Can you start with saying 'Here is your meal plan by Nutrition Planner - Atributties'"));
 
         chatRequest.setMessages(lstMessages);
         chatRequest.setN(chatRequestFromUser.getNumberOfDays());

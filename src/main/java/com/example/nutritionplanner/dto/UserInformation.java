@@ -12,5 +12,6 @@ public class UserInformation {
     private int age;
     private double weight;
     private double height;
+    private String activityLevel;
 }
 
