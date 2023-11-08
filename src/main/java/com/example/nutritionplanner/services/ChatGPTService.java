@@ -6,7 +6,8 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
-
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -38,45 +39,79 @@ public class ChatGPTService {
         return response.getChoices();
     }
 
-    // Opret beskeder baseret på brugerinput
-    private ChatRequest createChatRequest(ChatRequestFromUser chatRequestFromUser) {
-        ChatRequest chatRequest = new ChatRequest();
-        chatRequest.setModel(gptModel);
-        List<Message> lstMessages = new ArrayList<>();
 
-        String userMessage = String.format("I am a %s and my goal is to %s. My weight is %.2f kg and my height is %.2f cm. I am %d years old. My activity level is %s. I plan to do this for %d days.",
+    public String createUserMessage(ChatRequestFromUser chatRequestFromUser) {
+        return String.format("I wont a meal-plan for the day! I am a %s and my goal is to %s. My weight is %.2f kg and my height is %.2f cm. I am %d years old. My activity level is %s.",
                 chatRequestFromUser.getUserInformation().getGender(),
                 chatRequestFromUser.getNutritionType(),
                 chatRequestFromUser.getUserInformation().getWeight(),
                 chatRequestFromUser.getUserInformation().getHeight(),
                 chatRequestFromUser.getUserInformation().getAge(),
-                chatRequestFromUser.getUserInformation().getActivityLevel(),
-                chatRequestFromUser.getNumberOfDays());
+                chatRequestFromUser.getUserInformation().getActivityLevel());
+    }
+
+    public String mealPlanExample() {
+        return """
+                        Breakfast:
+                        - Oatmeal: 40 grams (1 portion)
+                        - Skimmed milk: 200 ml (1 glass)
+                        - Banana: 1 piece
+
+                        First Snack:
+                        - Apple: 1 piece
+
+                        Lunch:
+                        - Chicken breast: 150 grams (1 portion)
+                        - Brown rice: 75 grams (1/2 cup)
+                        - Broccoli: 100 grams (1 portion)
+                        - Carrots: 75 grams (1/2 cup)
+
+                        Second Snack:
+                        - Carrot sticks with hummus: 1 portion
+                        
+                        Afternoon Snack:
+                        - Greek yogurt: 150 grams (1 portion)
+                        - Blueberries: 75 grams (1/2 cup)
+                        - Almonds: 20 grams (1 handful)
+
+                        Dinner:
+                        - Salmon: 150 grams (1 portion)
+                        - Quinoa: 75 grams (1/2 cup)
+                        - Asparagus: 100 grams (1 portion)
+                        - Tomatoes: 75 grams (1/2 cup)
+                        
+                        After Dinner Snack:
+                        - Apple: 1 piece
+                        """
+
+                ;
+    }
 
 
+    // Opret beskeder baseret på brugerinput
+    private ChatRequest createChatRequest(ChatRequestFromUser chatRequestFromUser) {
+        ChatRequest chatRequest = new ChatRequest();
 
-        lstMessages.add(new Message(SYSTEM_ROLE, "You are a helpful assistant."));
-        lstMessages.add(new Message(USER_ROLE, userMessage));
-        lstMessages.add(new Message(USER_ROLE, "Can you show me my daily nutritional needs and " +
-                "help me create a meal plan for the day?," +
-                " i just want the meal plans and nothing else, " +
-                "you done have to explain anything to me." +
-                "Can you make it as simple as possible" +
-                "Can you start with saying 'Here is your meal plan by Nutrition Planner - Atributties'"));
+        chatRequest.setModel(gptModel);
+
+        List<Message> lstMessages = new ArrayList<>();
+        lstMessages.add(new Message(SYSTEM_ROLE, "U be helpful diet assistant wey go to create meal plan based on the input information u get using the following recipe format but with different ingredients every time" + mealPlanExample() + "You should always follow the recip structure but make some other meals and ingredients every time."));
+        lstMessages.add(new Message(USER_ROLE, createUserMessage(chatRequestFromUser)));
 
         chatRequest.setMessages(lstMessages);
-        chatRequest.setN(chatRequestFromUser.getNumberOfDays());
-        chatRequest.setTemperature(1);
-        chatRequest.setMaxTokens(250);
+        chatRequest.setN(1);
+        chatRequest.setTemperature(1.0);
+        chatRequest.setMaxTokens(400);
         chatRequest.setStream(false);
         chatRequest.setPresencePenalty(1);
 
         return chatRequest;
     }
-
     // Send chatanmodningen ved hjælp af WebClient
     private ChatResponse sendChatRequest(ChatRequest chatRequest) {
-        return webClientBuilder.baseUrl(gptApiUrl)
+        Instant startTime = Instant.now(); // Capture the start time
+
+        ChatResponse response = webClientBuilder.baseUrl(gptApiUrl)
                 .build()
                 .post()
                 .contentType(MediaType.APPLICATION_JSON)
@@ -85,6 +120,13 @@ public class ChatGPTService {
                 .retrieve()
                 .bodyToMono(ChatResponse.class)
                 .block();
+
+        Instant endTime = Instant.now(); // Capture the end time
+        Duration duration = Duration.between(startTime, endTime);
+
+        System.out.println("Time taken to receive data: " + duration.toMillis() + " milliseconds");
+
+        return response;
     }
 
 }

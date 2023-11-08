@@ -27,7 +27,7 @@ public class ChatRequest {
     @JsonProperty("n")
     private Integer n;
     @JsonProperty("temperature")
-    private Integer temperature;
+    private Double temperature;
     @JsonProperty("max_tokens")
     private Integer maxTokens;
     @JsonProperty("stream")
@@ -68,12 +68,12 @@ public class ChatRequest {
     }
 
     @JsonProperty("temperature")
-    public Integer getTemperature() {
+    public Double getTemperature() {
         return temperature;
     }
 
     @JsonProperty("temperature")
-    public void setTemperature(Integer temperature) {
+    public void setTemperature(Double temperature) {
         this.temperature = temperature;
     }
 
