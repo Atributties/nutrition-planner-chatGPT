@@ -12,7 +12,6 @@ import java.util.List;
 public class ChatRequestFromUser {
     private int id;
     private String nutritionType;
-    private int numberOfDays;
     @OneToOne
     private UserInformation userInformation;
 }
